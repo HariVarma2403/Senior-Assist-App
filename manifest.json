@@ -13,5 +13,25 @@
     { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
     { "src": "/icon-192-maskable.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
     { "src": "/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "screenshots" : [
+    {
+    "src": "Desktop_SS.png",
+    "sizes": "1920x848",
+    "type": "image/png",
+    "platform": "wide",
+    }
+    {
+    "src": "Mobile_SS.png",
+    "sizes": "473x841",
+    "type": "image/png",
+    "platform": "wide",
+    }
+    {
+    "src": "Tablet_SS.png",
+    "sizes": "1283x961",
+    "type": "image/png",
+    "platform": "wide",
+    }
   ]
 }
