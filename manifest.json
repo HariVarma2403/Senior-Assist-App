@@ -1,5 +1,6 @@
 
 {
+  "id": "com.seniorassist.pwa",
   "name": "Senior Assist",
   "short_name": "SeniorAssist",
   "description": "Smart assistance for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
@@ -11,6 +12,9 @@
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "any",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "e7e8971a-6421-4d37-889a-0e9f16b23f66",
   "icons": [
     {
       "src": "icon-192.png",

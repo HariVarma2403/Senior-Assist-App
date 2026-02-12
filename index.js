@@ -25,6 +25,15 @@ const INITIAL_STATE = {
 window.state = { ...INITIAL_STATE };
 let state = window.state;
 
+// --- Service Worker Registration ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registered'))
+      .catch(err => console.log('Service Worker registration failed: ', err));
+  });
+}
+
 function setState(updater) {
   const newState = typeof updater === 'function' ? updater(window.state) : { ...window.state, ...updater };
   window.state = newState;
@@ -132,7 +141,7 @@ window.toggleAlarm = () => {
 window.nextIntro = () => {
   if (state.introStep === 3) {
     const nameInput = document.getElementById('intro-name-input');
-    const finalName = nameInput ? nameInput.nameInput = nameInput.value.trim() : state.userName;
+    const finalName = nameInput ? nameInput.value.trim() : state.userName;
     if (finalName) setState({ userName: finalName, hasDoneIntro: true, introStep: 0 });
     else alert("Please tell me your name so I can greet you!");
   } else {
@@ -286,7 +295,7 @@ function renderIntro() {
           <h2 class="text-5xl font-black leading-tight">${step.title}</h2>
           <p class="text-2xl font-medium opacity-80 leading-relaxed">${step.desc}</p>
         </div>
-        ${step.isSetup ? `<input id="intro-name-input" type="text" placeholder="Your name..." value="${state.userName}" class="w-full p-8 rounded-[30px] text-3xl font-black bg-white shadow-2xl border-none text-slate-900 text-center">` : ''}
+        ${step.isSetup ? `<input id="intro-name-input" type="text" placeholder="Your name..." value="${state.userName}" class="w-full p-8 rounded-[30px] text-3xl font-black bg-white shadow-2xl border-none text-slate-900 text-center outline-none ring-4 ring-blue-100">` : ''}
       </div>
       <div class="p-12 flex flex-col items-center gap-8">
         <button onclick="window.nextIntro()" class="w-full max-w-sm py-8 rounded-[40px] text-3xl font-black shadow-2xl active:scale-95 transition-transform ${step.color === 'bg-white' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}">
