@@ -3,12 +3,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Senior Assist</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -19,16 +21,30 @@
       user-select: none;
       margin: 0;
       padding: 0;
-      overflow: hidden;
       height: 100vh;
       width: 100vw;
+      background: #f8fafc; /* Light background for desktop */
     }
     
+    /* Desktop Background Decoration */
+    @media (min-width: 768px) {
+      body {
+        background: radial-gradient(circle at top left, #dbeafe 0%, #f8fafc 40%);
+      }
+      body.dark-mode {
+        background: radial-gradient(circle at top left, #1e293b 0%, #0f172a 40%);
+      }
+    }
+
     #root {
       height: 100%;
       width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
+    /* Scrollbar styling */
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
@@ -60,17 +76,20 @@
       to { transform: rotate(360deg); }
     }
     .animate-sync { animation: sync-spin 2s linear infinite; }
+
+    /* iPhone safe areas */
+    .safe-top { padding-top: env(safe-area-inset-top); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   </style>
 <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "lucide": "https://esm.sh/lucide@^0.563.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0"
   }
 }
 </script>
 </head>
-<body class="bg-gray-50 text-slate-900 transition-colors duration-300">
+<body>
   <div id="root"></div>
   <script type="module" src="index.js"></script>
 </body>
