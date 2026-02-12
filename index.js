@@ -34,10 +34,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-/**
- * Fixed setState to ensure it always merges with current state.
- * Previous implementation failed when functional updaters returned partial objects.
- */
 function setState(updater) {
   const currentState = window.state;
   const update = typeof updater === 'function' ? updater(currentState) : updater;
@@ -222,10 +218,22 @@ window.saveFromModal = () => {
   const v1 = document.getElementById('modal-input-1').value;
   const v2 = document.getElementById('modal-input-2').value;
   const v3 = document.getElementById('modal-input-3')?.value;
+  const v4 = document.getElementById('modal-input-4')?.value; // Pill count for meds
+  
   if (!v1 || !v2) return alert("Please fill in the required fields.");
 
   if (state.modalType === 'med') {
-    setState(s => ({ medicines: [...s.medicines, { id: Date.now().toString(), name: v1, time: v2, label: v3 || 'General', taken: false }], modalType: null }));
+    setState(s => ({ 
+      medicines: [...s.medicines, { 
+        id: Date.now().toString(), 
+        name: v1, 
+        time: v2, 
+        label: v3 || 'General', 
+        dosage: v4 || '1', // Default to 1 if empty
+        taken: false 
+      }], 
+      modalType: null 
+    }));
   } else if (state.modalType === 'contact') {
     setState(s => ({ contacts: [...s.contacts, { id: Date.now().toString(), name: v1, phone: v2, relation: v3 || 'Family' }], modalType: null }));
   }
@@ -249,7 +257,7 @@ const ICONS = {
   bell: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
 };
 
-// --- Render Functions ---
+// --- Render Logic ---
 function renderIntro() {
   const steps = [
     { title: "Welcome!", desc: "I am Senior Assist, your companion for a healthy and safe life.", icon: ICONS.star, color: "bg-blue-600", textColor: "text-white" },
@@ -319,8 +327,11 @@ function renderTabContent() {
               <div class="w-10 h-10 rounded-full border-4 flex items-center justify-center ${m.taken ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200'}">
                 ${m.taken ? '✓' : ''}
               </div>
-              <div>
-                <h4 class="text-xl font-bold">${m.name}</h4>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h4 class="text-xl font-bold">${m.name}</h4>
+                  <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight">${m.dosage || '1'} Pill${(m.dosage || '1') === '1' ? '' : 's'}</span>
+                </div>
                 <p class="text-sm font-medium ${labelColorClass}">${m.time} • ${m.label}</p>
               </div>
             </div>
@@ -461,9 +472,15 @@ function renderEntityModal() {
           <button onclick="setState({modalType: null})" class="text-gray-400 p-2 hover:text-red-500 transition-colors">${ICONS.x}</button>
         </div>
         <div class="space-y-4">
-          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name' : 'Full Name'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
+          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name (e.g. Aspirin)' : 'Full Name'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
           <input id="modal-input-2" type="${isMed ? 'time' : 'tel'}" placeholder="${isMed ? 'Time' : 'Phone Number'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
           <input id="modal-input-3" type="text" placeholder="${isMed ? 'Label (e.g. Morning)' : 'Relation (e.g. Family)'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
+          ${isMed ? `
+            <div class="space-y-2">
+              <label class="px-4 text-xs font-black text-blue-600 uppercase">Number of Pills</label>
+              <input id="modal-input-4" type="number" min="1" max="20" placeholder="1" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
+            </div>
+          ` : ''}
         </div>
         <button onclick="window.saveFromModal()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-transform">SAVE</button>
       </div>
