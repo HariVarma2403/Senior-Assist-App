@@ -3,35 +3,64 @@
   "name": "Senior Assist",
   "short_name": "SeniorAssist",
   "description": "Smart assistance for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
-  "start_url": ".",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["medical", "health", "productivity"],
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
+  "orientation": "any",
   "icons": [
-    { "src": "/favicon.ico", "type": "image/x-icon", "sizes": "16x16 32x32" },
-    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
-    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
-    { "src": "/icon-192-maskable.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
-    { "src": "/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-192-maskable.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
   ],
-  "screenshots" : [
+  "screenshots": [
     {
-    "src": "Desktop_SS.png",
-    "sizes": "1920x848",
-    "type": "image/png",
-    "platform": "wide",
+      "src": "Mobile_SS.png",
+      "sizes": "473x841",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile Home Screen"
+    },
+    {
+      "src": "Desktop_SS.png",
+      "sizes": "1920x848",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Dashboard"
     }
+  ],
+  "shortcuts": [
     {
-    "src": "Mobile_SS.png",
-    "sizes": "473x841",
-    "type": "image/png",
-    "platform": "wide",
-    }
+      "name": "Panic Button",
+      "url": "./index.html?tab=emergency",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
     {
-    "src": "Tablet_SS.png",
-    "sizes": "1283x961",
-    "type": "image/png",
-    "platform": "wide",
+      "name": "My Medicines",
+      "url": "./index.html?tab=meds",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
