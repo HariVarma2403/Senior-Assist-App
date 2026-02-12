@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Modality } from '@google/genai';
 
 // --- Global State & Initialization ---
@@ -25,23 +26,27 @@ window.state = { ...INITIAL_STATE };
 let state = window.state;
 
 // --- Service Worker Registration ---
-// Use a relative path to avoid origin mismatch issues in preview environments
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swPath = './sw.js';
-    navigator.serviceWorker.register(swPath)
+    navigator.serviceWorker.register('./sw.js')
       .then(reg => console.log('Service Worker registered successfully'))
-      .catch(err => {
-        console.warn('Service Worker registration failed:', err.message);
-      });
+      .catch(err => console.warn('Service Worker registration failed:', err.message));
   });
 }
 
+/**
+ * Fixed setState to ensure it always merges with current state.
+ * Previous implementation failed when functional updaters returned partial objects.
+ */
 function setState(updater) {
-  const newState = typeof updater === 'function' ? updater(window.state) : { ...window.state, ...updater };
+  const currentState = window.state;
+  const update = typeof updater === 'function' ? updater(currentState) : updater;
+  const newState = { ...currentState, ...update };
+  
   window.state = newState;
   state = window.state;
   
+  // Persistence
   localStorage.setItem('senior_assist_meds', JSON.stringify(state.medicines));
   localStorage.setItem('senior_assist_contacts', JSON.stringify(state.contacts));
   localStorage.setItem('senior_assist_dark', state.isDarkMode.toString());
@@ -151,7 +156,7 @@ window.nextIntro = () => {
       alert("Please tell me your name so I can greet you!");
     }
   } else {
-    setState(s => ({ ...s, introStep: s.introStep + 1 }));
+    setState(s => ({ introStep: s.introStep + 1 }));
   }
 };
 
@@ -220,9 +225,9 @@ window.saveFromModal = () => {
   if (!v1 || !v2) return alert("Please fill in the required fields.");
 
   if (state.modalType === 'med') {
-    setState(s => ({ ...s, medicines: [...s.medicines, { id: Date.now().toString(), name: v1, time: v2, label: v3 || 'General', taken: false }], modalType: null }));
+    setState(s => ({ medicines: [...s.medicines, { id: Date.now().toString(), name: v1, time: v2, label: v3 || 'General', taken: false }], modalType: null }));
   } else if (state.modalType === 'contact') {
-    setState(s => ({ ...s, contacts: [...s.contacts, { id: Date.now().toString(), name: v1, phone: v2, relation: v3 || 'Family' }], modalType: null }));
+    setState(s => ({ contacts: [...s.contacts, { id: Date.now().toString(), name: v1, phone: v2, relation: v3 || 'Family' }], modalType: null }));
   }
 };
 
@@ -244,7 +249,7 @@ const ICONS = {
   bell: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
 };
 
-// --- Render Logic ---
+// --- Render Functions ---
 function renderIntro() {
   const steps = [
     { title: "Welcome!", desc: "I am Senior Assist, your companion for a healthy and safe life.", icon: ICONS.star, color: "bg-blue-600", textColor: "text-white" },
