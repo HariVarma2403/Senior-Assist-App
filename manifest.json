@@ -1,0 +1,17 @@
+{
+  "name": "Senior Assist",
+  "short_name": "SeniorAssist",
+  "description": "Smart assistance for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

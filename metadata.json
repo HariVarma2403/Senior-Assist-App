@@ -1,0 +1,8 @@
+{
+  "name": "Senior Assist",
+  "description": "A smart assistance app for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
