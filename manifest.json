@@ -16,27 +16,16 @@
   "iarc_rating_id": "e7e8971a-6421-4d37-889a-0e9f16b23f66",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "icon-512.png",
+      "src": "icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
-    },
-    {
-      "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
     }
+    
   ],
   "screenshots": [
     {
