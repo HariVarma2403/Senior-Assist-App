@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'senior-assist-v1';
 const ASSETS = [
   './',
@@ -27,7 +28,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Always go to network for Gemini API calls - voice assistant needs internet
   if (event.request.url.includes('generativelanguage.googleapis.com')) {
     return;
   }
@@ -47,6 +47,18 @@ self.addEventListener('fetch', (event) => {
       });
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === '/' && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('/');
     })
   );
 });
