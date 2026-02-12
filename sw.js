@@ -1,73 +1,54 @@
+// This is the service worker with the combined offline experience (Offline page + Offline copy of pages)
 
-const CACHE_NAME = 'senior-assist-v3';
-const ASSETS = [
-  './',
-  './index.html',
-  './index.js',
-  './manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap'
-];
+const CACHE = "pwabuilder-offline-page";
 
-self.addEventListener('install', (event) => {
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
+
+// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
+const offlineFallbackPage = "ToDo-replace-this-name.html";
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener('install', async (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
-      return cache.addAll(ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then((cache) => cache.add(offlineFallbackPage))
   );
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    }).then(() => self.clients.claim())
-  );
-});
+if (workbox.navigationPreload.isSupported()) {
+  workbox.navigationPreload.enable();
+}
+
+workbox.routing.registerRoute(
+  new RegExp('/*'),
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: CACHE
+  })
+);
 
 self.addEventListener('fetch', (event) => {
-  // Don't cache API calls
-  if (event.request.url.includes('generativelanguage.googleapis.com') || 
-      event.request.url.includes('accounts.google.com')) {
-    return;
-  }
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const preloadResp = await event.preloadResponse;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+        if (preloadResp) {
+          return preloadResp;
         }
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        const networkResp = await fetch(event.request);
+        return networkResp;
+      } catch (error) {
 
-        return networkResponse;
-      }).catch(() => {
-        // Fallback for document navigation
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) return client.focus();
+        const cache = await caches.open(CACHE);
+        const cachedResp = await cache.match(offlineFallbackPage);
+        return cachedResp;
       }
-      if (clients.openWindow) return clients.openWindow('./');
-    })
-  );
+    })());
+  }
 });
