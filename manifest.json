@@ -1,9 +1,8 @@
-
 {
-  "id": "com.seniorassist.pwa",
-  "name": "Senior Assist by HV",
+  "id": "com.seniorassist.app",
+  "name": "Senior Assist",
   "short_name": "SeniorAssist",
-  "description": "Smart assistance app for elderly with medicine reminders, emergency help, and voice support.",
+  "description": "Smart assistance for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
   "lang": "en-US",
   "dir": "ltr",
   "categories": ["medical", "health", "productivity"],
@@ -27,13 +26,13 @@
       "sizes": "512x512"
     },
     {
-      "src": "icon-192-maskable.png",
+      "src": "icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "icon-512-maskable.png",
+      "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Modality } from '@google/genai';
 
 // --- Global State & Initialization ---
@@ -26,11 +25,15 @@ window.state = { ...INITIAL_STATE };
 let state = window.state;
 
 // --- Service Worker Registration ---
+// Use a relative path to avoid origin mismatch issues in preview environments
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker registered'))
-      .catch(err => console.log('Service Worker registration failed: ', err));
+    const swPath = './sw.js';
+    navigator.serviceWorker.register(swPath)
+      .then(reg => console.log('Service Worker registered successfully'))
+      .catch(err => {
+        console.warn('Service Worker registration failed:', err.message);
+      });
   });
 }
 
@@ -142,8 +145,11 @@ window.nextIntro = () => {
   if (state.introStep === 3) {
     const nameInput = document.getElementById('intro-name-input');
     const finalName = nameInput ? nameInput.value.trim() : state.userName;
-    if (finalName) setState({ userName: finalName, hasDoneIntro: true, introStep: 0 });
-    else alert("Please tell me your name so I can greet you!");
+    if (finalName) {
+      setState({ userName: finalName, hasDoneIntro: true, introStep: 0 });
+    } else {
+      alert("Please tell me your name so I can greet you!");
+    }
   } else {
     setState(s => ({ ...s, introStep: s.introStep + 1 }));
   }
@@ -156,8 +162,8 @@ window.startAssistant = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     assistantStream = stream;
-    assistantInCtx = new AudioContext({ sampleRate: 16000 });
-    assistantOutCtx = new AudioContext({ sampleRate: 24000 });
+    assistantInCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    assistantOutCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
     
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     assistantSession = await ai.live.connect({
@@ -238,47 +244,7 @@ const ICONS = {
   bell: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
 };
 
-// --- Render Core ---
-function render() {
-  const root = document.getElementById('root');
-  if (!root) return;
-  if (!state.hasDoneIntro) { root.innerHTML = renderIntro(); return; }
-
-  const bgClass = state.isDarkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-slate-900';
-  const borderClass = state.isDarkMode ? 'border-slate-800' : 'border-gray-100';
-  const navBgClass = state.isDarkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-100';
-
-  root.innerHTML = `
-    <div class="h-full w-full max-md:h-screen flex flex-col overflow-hidden md:max-w-xl md:h-[90vh] md:rounded-[60px] md:shadow-2xl md:border-8 md:border-black/5 ${bgClass} relative">
-      <header class="p-6 safe-top flex justify-between items-center bg-inherit border-b ${borderClass}">
-        <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-black text-blue-600">Senior Assist</h1>
-          ${!state.isOnline ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Offline</span>` : ''}
-        </div>
-        <button onclick="setState({isDarkMode: !state.isDarkMode})" class="p-2 rounded-full active:scale-90 transition-all ${state.isDarkMode ? 'text-yellow-400 bg-slate-800' : 'text-slate-400 bg-gray-100'}">
-          ${state.isDarkMode ? ICONS.sun : ICONS.moon}
-        </button>
-      </header>
-
-      <main class="flex-1 overflow-y-auto px-6 pt-4 pb-28 custom-scrollbar view-transition">
-        ${renderTabContent()}
-      </main>
-
-      <nav class="absolute bottom-0 left-0 right-0 safe-bottom border-t p-4 flex justify-around items-center z-50 backdrop-blur-lg ${navBgClass}">
-        ${['home', 'meds', 'contacts', 'emergency', 'settings'].map(tab => `
-          <button onclick="setState({activeTab: '${tab}'})" class="flex flex-col items-center gap-1 ${state.activeTab === tab ? 'text-blue-600 scale-110' : 'text-gray-400 opacity-60'} transition-all">
-            <div class="p-2 rounded-2xl ${state.activeTab === tab ? (state.isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50') : ''}">${ICONS[tab]}</div>
-            <span class="text-[10px] font-black uppercase tracking-widest">${tab === 'meds' ? 'Meds' : tab}</span>
-          </button>
-        `).join('')}
-      </nav>
-
-      ${state.showAssistant ? renderAssistantModal() : ''}
-      ${state.modalType ? renderEntityModal() : ''}
-    </div>
-  `;
-}
-
+// --- Render Logic ---
 function renderIntro() {
   const steps = [
     { title: "Welcome!", desc: "I am Senior Assist, your companion for a healthy and safe life.", icon: ICONS.star, color: "bg-blue-600", textColor: "text-white" },
@@ -496,6 +462,46 @@ function renderEntityModal() {
         </div>
         <button onclick="window.saveFromModal()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-transform">SAVE</button>
       </div>
+    </div>
+  `;
+}
+
+function render() {
+  const root = document.getElementById('root');
+  if (!root) return;
+  if (!state.hasDoneIntro) { root.innerHTML = renderIntro(); return; }
+
+  const bgClass = state.isDarkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-slate-900';
+  const borderClass = state.isDarkMode ? 'border-slate-800' : 'border-gray-100';
+  const navBgClass = state.isDarkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-100';
+
+  root.innerHTML = `
+    <div class="h-full w-full max-md:h-screen flex flex-col overflow-hidden md:max-w-xl md:h-[90vh] md:rounded-[60px] md:shadow-2xl md:border-8 md:border-black/5 ${bgClass} relative">
+      <header class="p-6 safe-top flex justify-between items-center bg-inherit border-b ${borderClass}">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-black text-blue-600">Senior Assist</h1>
+          ${!state.isOnline ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Offline</span>` : ''}
+        </div>
+        <button onclick="setState({isDarkMode: !state.isDarkMode})" class="p-2 rounded-full active:scale-90 transition-all ${state.isDarkMode ? 'text-yellow-400 bg-slate-800' : 'text-slate-400 bg-gray-100'}">
+          ${state.isDarkMode ? ICONS.sun : ICONS.moon}
+        </button>
+      </header>
+
+      <main class="flex-1 overflow-y-auto px-6 pt-4 pb-28 custom-scrollbar view-transition">
+        ${renderTabContent()}
+      </main>
+
+      <nav class="absolute bottom-0 left-0 right-0 safe-bottom border-t p-4 flex justify-around items-center z-50 backdrop-blur-lg ${navBgClass}">
+        ${['home', 'meds', 'contacts', 'emergency', 'settings'].map(tab => `
+          <button onclick="setState({activeTab: '${tab}'})" class="flex flex-col items-center gap-1 ${state.activeTab === tab ? 'text-blue-600 scale-110' : 'text-gray-400 opacity-60'} transition-all">
+            <div class="p-2 rounded-2xl ${state.activeTab === tab ? (state.isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50') : ''}">${ICONS[tab]}</div>
+            <span class="text-[10px] font-black uppercase tracking-widest">${tab === 'meds' ? 'Meds' : tab}</span>
+          </button>
+        `).join('')}
+      </nav>
+
+      ${state.showAssistant ? renderAssistantModal() : ''}
+      ${state.modalType ? renderEntityModal() : ''}
     </div>
   `;
 }

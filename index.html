@@ -1,22 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Senior Assist</title>
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💙</text></svg>">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('sw.js')
-  }
-</script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
@@ -28,10 +21,9 @@
       padding: 0;
       height: 100vh;
       width: 100vw;
-      background: #f8fafc; /* Light background for desktop */
+      background: #f8fafc;
     }
     
-    /* Desktop Background Decoration */
     @media (min-width: 768px) {
       body {
         background: radial-gradient(circle at top left, #dbeafe 0%, #f8fafc 40%);
@@ -49,7 +41,6 @@
       align-items: center;
     }
 
-    /* Scrollbar styling */
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
@@ -76,20 +67,13 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes sync-spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .animate-sync { animation: sync-spin 2s linear infinite; }
-
-    /* iPhone safe areas */
     .safe-top { padding-top: env(safe-area-inset-top); }
     .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   </style>
 <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0"
+    "@google/genai": "https://esm.sh/@google/genai@1.41.0"
   }
 }
 </script>
