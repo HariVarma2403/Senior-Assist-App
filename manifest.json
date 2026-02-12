@@ -3,7 +3,7 @@
   "id": "com.seniorassist.pwa",
   "name": "Senior Assist",
   "short_name": "SeniorAssist",
-  "description": "Smart assistance for elderly people featuring medicine reminders, emergency panic alerts, and real-time voice assistance.",
+  "description": "Smart assistance app for elderly with medicine reminders, emergency help, and voice support.",
   "lang": "en-US",
   "dir": "ltr",
   "categories": ["medical", "health", "productivity"],
