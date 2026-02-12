@@ -27,6 +27,9 @@ const INITIAL_STATE = {
 window.state = { ...INITIAL_STATE };
 let state = window.state;
 
+// Set initial body class for dark mode
+if (state.isDarkMode) document.body.classList.add('dark-mode');
+
 // --- Service Worker ---
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -288,9 +291,13 @@ function render() {
     return;
   }
 
+  const bgClass = state.isDarkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-slate-900';
+  const borderClass = state.isDarkMode ? 'border-slate-800' : 'border-gray-100';
+  const navBgClass = state.isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-gray-100';
+
   root.innerHTML = `
-    <div class="h-full w-full max-md:h-screen flex flex-col overflow-hidden md:max-w-xl md:h-[90vh] md:rounded-[60px] md:shadow-2xl md:border-8 md:border-black/5 ${state.isDarkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-slate-900'} relative">
-      <header class="p-6 safe-top flex justify-between items-center bg-inherit border-b ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
+    <div class="h-full w-full max-md:h-screen flex flex-col overflow-hidden md:max-w-xl md:h-[90vh] md:rounded-[60px] md:shadow-2xl md:border-8 md:border-black/5 ${bgClass} relative">
+      <header class="p-6 safe-top flex justify-between items-center bg-inherit border-b ${borderClass}">
         <div class="flex items-center gap-3">
           <h1 class="text-2xl font-black text-blue-600">Senior Assist</h1>
           ${!state.isOnline ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Offline</span>` : ''}
@@ -304,10 +311,10 @@ function render() {
         ${renderTabContent()}
       </main>
 
-      <nav class="absolute bottom-0 left-0 right-0 safe-bottom bg-inherit border-t p-4 flex justify-around items-center z-50 ${state.isDarkMode ? 'border-slate-800 bg-slate-950/80 backdrop-blur-lg' : 'border-gray-100 shadow-lg bg-white/80 backdrop-blur-lg'}">
+      <nav class="absolute bottom-0 left-0 right-0 safe-bottom border-t p-4 flex justify-around items-center z-50 backdrop-blur-lg ${navBgClass}">
         ${['home', 'meds', 'contacts', 'emergency', 'settings'].map(tab => `
           <button onclick="setState({activeTab: '${tab}'})" class="flex flex-col items-center gap-1 ${state.activeTab === tab ? 'text-blue-600 scale-110' : 'text-gray-400 opacity-60'} transition-all">
-            <div class="p-2 rounded-2xl ${state.activeTab === tab ? 'bg-blue-50' : ''}">${ICONS[tab]}</div>
+            <div class="p-2 rounded-2xl ${state.activeTab === tab ? (state.isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50') : ''}">${ICONS[tab]}</div>
             <span class="text-[10px] font-black uppercase tracking-widest">${tab === 'meds' ? 'Meds' : tab}</span>
           </button>
         `).join('')}
@@ -349,6 +356,9 @@ function renderIntro() {
 }
 
 function renderTabContent() {
+  const cardBgClass = state.isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-100 text-slate-900';
+  const labelColorClass = state.isDarkMode ? 'text-slate-400' : 'text-gray-500';
+
   if (state.activeTab === 'home') return `
     <div class="space-y-8 animate-in fade-in">
       <div class="bg-blue-600 p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
@@ -362,12 +372,12 @@ function renderTabContent() {
         <div class="absolute -right-10 -bottom-10 opacity-10 scale-[2] rotate-12">${ICONS.star}</div>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div onclick="setState({activeTab: 'meds'})" class="p-6 rounded-[40px] border-2 bg-white flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer">
-          <div class="w-14 h-14 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600">${ICONS.meds}</div>
+        <div onclick="setState({activeTab: 'meds'})" class="p-6 rounded-[40px] border-2 flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer ${cardBgClass}">
+          <div class="w-14 h-14 bg-blue-100/10 rounded-3xl flex items-center justify-center text-blue-600">${ICONS.meds}</div>
           <h3 class="text-xl font-black">Medicines</h3>
         </div>
-        <div onclick="setState({activeTab: 'contacts'})" class="p-6 rounded-[40px] border-2 bg-white flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer">
-          <div class="w-14 h-14 bg-purple-100 rounded-3xl flex items-center justify-center text-purple-600">${ICONS.contacts}</div>
+        <div onclick="setState({activeTab: 'contacts'})" class="p-6 rounded-[40px] border-2 flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer ${cardBgClass}">
+          <div class="w-14 h-14 bg-purple-100/10 rounded-3xl flex items-center justify-center text-purple-600">${ICONS.contacts}</div>
           <h3 class="text-xl font-black">Contacts</h3>
         </div>
       </div>
@@ -380,16 +390,16 @@ function renderTabContent() {
         <button onclick="setState({modalType: 'med'})" class="bg-blue-600 text-white p-4 rounded-full shadow-lg active:scale-90 transition-transform">${ICONS.plus}</button>
       </div>
       <div class="space-y-4">
-        ${state.medicines.length === 0 ? '<p class="text-center py-10 opacity-40">No medicines added yet.</p>' : ''}
+        ${state.medicines.length === 0 ? `<p class="text-center py-10 opacity-40 ${state.isDarkMode ? 'text-white' : 'text-slate-900'}">No medicines added yet.</p>` : ''}
         ${state.medicines.map(m => `
-          <div class="flex items-center justify-between p-6 rounded-[40px] border-2 ${m.taken ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-100'}">
+          <div class="flex items-center justify-between p-6 rounded-[40px] border-2 ${m.taken ? (state.isDarkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50/50 border-green-200') : cardBgClass}">
             <div class="flex items-center gap-4 flex-1 cursor-pointer" onclick="window.toggleMed('${m.id}')">
               <div class="w-10 h-10 rounded-full border-4 flex items-center justify-center ${m.taken ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200'}">
                 ${m.taken ? '✓' : ''}
               </div>
               <div>
                 <h4 class="text-xl font-bold">${m.name}</h4>
-                <p class="text-sm opacity-60 font-medium">${m.time} • ${m.label}</p>
+                <p class="text-sm font-medium ${labelColorClass}">${m.time} • ${m.label}</p>
               </div>
             </div>
             <button onclick="window.deleteMed('${m.id}')" class="p-4 text-red-300 hover:text-red-500">${ICONS.trash}</button>
@@ -406,16 +416,16 @@ function renderTabContent() {
       </div>
       <div class="space-y-4">
         ${state.contacts.map(c => `
-          <div class="flex items-center justify-between p-6 rounded-[40px] border-2 bg-white border-gray-100">
+          <div class="flex items-center justify-between p-6 rounded-[40px] border-2 ${cardBgClass}">
             <div class="flex-1">
               <h4 class="text-xl font-bold">${c.name}</h4>
-              <p class="text-sm opacity-60 font-medium">${c.relation}</p>
+              <p class="text-sm font-medium ${labelColorClass}">${c.relation}</p>
             </div>
             <div class="flex items-center gap-2">
               <a href="tel:${c.phone}" class="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
                 ${ICONS.phone}
               </a>
-              <button onclick="window.deleteContact('${c.id}')" class="p-4 text-red-300">${ICONS.trash}</button>
+              <button onclick="window.deleteContact('${c.id}')" class="p-4 text-red-300 hover:text-red-500">${ICONS.trash}</button>
             </div>
           </div>
         `).join('')}
@@ -434,45 +444,48 @@ function renderTabContent() {
           <span class="text-4xl font-black">${state.isAlarmActive ? 'STOP ALARM' : 'PANIC BUTTON'}</span>
         </div>
       </button>
-      ${state.isAlarmActive ? '<p class="text-red-600 font-bold animate-bounce text-xl">ALARM SOUNDING...</p>' : ''}
+      ${state.isAlarmActive ? '<p class="text-red-600 font-bold animate-bounce text-xl mt-4">ALARM SOUNDING...</p>' : ''}
     </div>
   `;
   if (state.activeTab === 'settings') return `
     <div class="space-y-8">
       <h2 class="text-3xl font-black">Settings</h2>
       
-      <div class="bg-white rounded-[40px] border-2 border-gray-100 p-8 space-y-8">
+      <div class="rounded-[40px] border-2 p-8 space-y-8 ${cardBgClass}">
         ${state.user ? `
-          <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-3xl">
+          <div class="flex items-center gap-4 p-4 rounded-3xl ${state.isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}">
             <img src="${state.user.picture}" class="w-16 h-16 rounded-full border-2 border-white shadow-sm">
             <div>
               <p class="font-black text-blue-600">Logged in as</p>
-              <p class="text-xl font-bold text-slate-900">${state.user.name}</p>
+              <p class="text-xl font-bold">${state.user.name}</p>
             </div>
           </div>
           <button onclick="window.logout()" class="w-full py-4 text-center font-bold text-red-500">Sign Out</button>
         ` : `
-          <div id="google-signin-btn" class="flex justify-center"></div>
+          <div class="flex flex-col items-center gap-4">
+            <p class="font-bold opacity-60">Sync your settings</p>
+            <div id="google-signin-btn" class="flex justify-center"></div>
+          </div>
         `}
         
-        <div class="flex items-center justify-between border-t pt-6">
+        <div class="flex items-center justify-between border-t pt-6 ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
           <div class="flex items-center gap-4">
             <div class="text-blue-600">${ICONS.moon}</div>
             <h4 class="text-xl font-black">Dark Mode</h4>
           </div>
-          <button onclick="setState({isDarkMode: !state.isDarkMode})" class="w-16 h-10 rounded-full ${state.isDarkMode ? 'bg-blue-600' : 'bg-gray-200'} p-1 transition-colors">
-            <div class="w-8 h-8 bg-white rounded-full ${state.isDarkMode ? 'translate-x-6' : ''} transition-transform shadow-sm"></div>
+          <button onclick="setState({isDarkMode: !state.isDarkMode})" class="w-16 h-10 rounded-full ${state.isDarkMode ? 'bg-blue-600' : 'bg-gray-200'} p-1 transition-colors relative">
+            <div class="w-8 h-8 bg-white rounded-full transition-transform shadow-sm ${state.isDarkMode ? 'translate-x-6' : 'translate-x-0'}"></div>
           </button>
         </div>
         
-        <div class="border-t pt-6">
-          <button onclick="window.resetApp()" class="w-full py-4 bg-red-50 text-red-600 rounded-3xl font-black active:bg-red-100 transition-colors">
+        <div class="border-t pt-6 ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
+          <button onclick="window.resetApp()" class="w-full py-4 rounded-3xl font-black active:scale-95 transition-all ${state.isDarkMode ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-600'}">
             WIPE ALL DATA
           </button>
         </div>
       </div>
       
-      <p class="text-center text-sm opacity-30 font-bold">SENIOR ASSIST V1.0</p>
+      <p class="text-center text-sm opacity-30 font-bold uppercase tracking-widest">Senior Assist v1.0</p>
     </div>
   `;
 }
@@ -498,24 +511,27 @@ function renderAssistantModal() {
           <button onclick="stopAssistant()" class="bg-red-500 px-12 py-6 rounded-full font-black text-2xl shadow-xl active:scale-95 transition-transform">STOP</button>
         `}
       </div>
-      <p class="text-center opacity-70 font-medium">I'm here to help with your meds or any questions you have.</p>
+      <p class="text-center opacity-70 font-medium max-w-xs mx-auto">I'm here to help with your meds or any questions you have.</p>
     </div>
   `;
 }
 
 function renderEntityModal() {
   const isMed = state.modalType === 'med';
+  const modalBgClass = state.isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900';
+  const inputBgClass = state.isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-100 text-slate-900';
+
   return `
     <div class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-end p-4 animate-in fade-in">
-      <div class="w-full bg-white rounded-[50px] p-10 space-y-8 shadow-2xl max-w-lg mx-auto">
+      <div class="w-full rounded-[50px] p-10 space-y-8 shadow-2xl max-w-lg mx-auto ${modalBgClass}">
         <div class="flex justify-between items-center">
-          <h3 class="text-3xl font-black text-slate-900">${isMed ? 'Add Medicine' : 'Add Contact'}</h3>
-          <button onclick="setState({modalType: null})" class="text-gray-400">${ICONS.x}</button>
+          <h3 class="text-3xl font-black">${isMed ? 'Add Medicine' : 'Add Contact'}</h3>
+          <button onclick="setState({modalType: null})" class="text-gray-400 p-2">${ICONS.x}</button>
         </div>
         <div class="space-y-4">
-          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name' : 'Full Name'}" class="w-full p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 text-xl font-bold text-slate-900">
-          <input id="modal-input-2" type="${isMed ? 'time' : 'tel'}" placeholder="${isMed ? 'Time' : 'Phone Number'}" class="w-full p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 text-xl font-bold text-slate-900">
-          <input id="modal-input-3" type="text" placeholder="${isMed ? 'Label (e.g. Morning)' : 'Relation (e.g. Family)'}" class="w-full p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 text-xl font-bold text-slate-900">
+          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name' : 'Full Name'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
+          <input id="modal-input-2" type="${isMed ? 'time' : 'tel'}" placeholder="${isMed ? 'Time' : 'Phone Number'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
+          <input id="modal-input-3" type="text" placeholder="${isMed ? 'Label (e.g. Morning)' : 'Relation (e.g. Family)'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
         </div>
         <button onclick="window.saveFromModal()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-transform">SAVE</button>
       </div>
