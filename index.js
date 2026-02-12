@@ -9,7 +9,7 @@ const INITIAL_STATE = {
   user: JSON.parse(localStorage.getItem('senior_assist_user')) || null,
   userName: localStorage.getItem('senior_assist_name') || '',
   isDarkMode: localStorage.getItem('senior_assist_dark') === 'true',
-  notificationsEnabled: localStorage.getItem('senior_assist_notif') === 'true',
+  notificationsEnabled: localStorage.getItem('senior_assist_notif') === 'true' && Notification.permission === 'granted',
   medicines: JSON.parse(localStorage.getItem('senior_assist_meds')) || [],
   contacts: JSON.parse(localStorage.getItem('senior_assist_contacts')) || [
     { id: '1', name: 'Emergency Services', phone: '911', relation: 'SOS' }
@@ -33,12 +33,57 @@ if (state.isDarkMode) document.body.classList.add('dark-mode');
 // --- Service Worker ---
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Simplified registration to avoid "Invalid URL" errors
     navigator.serviceWorker.register('sw.js')
       .then(reg => console.log('SW Registered'))
       .catch(err => console.warn('SW Registration failed:', err));
   });
 }
+
+// --- Notification Logic ---
+function checkMedicines() {
+  if (!state.notificationsEnabled || Notification.permission !== 'granted') return;
+  
+  const now = new Date();
+  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  
+  state.medicines.forEach(med => {
+    if (med.time === currentTime && !med.taken) {
+      // Create a unique key for today's notification to prevent repeats in the same minute
+      const notificationKey = `notified_${med.id}_${now.toDateString()}`;
+      if (localStorage.getItem(notificationKey)) return;
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(`Medicine Reminder`, {
+            body: `Hi ${state.userName}, it's time to take your ${med.name} (${med.label}).`,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: `med-${med.id}`,
+            renotify: true,
+            vibrate: [200, 100, 200]
+          });
+          localStorage.setItem(notificationKey, 'true');
+        });
+      }
+    }
+  });
+}
+
+// Start the check loop every 30 seconds
+setInterval(checkMedicines, 30000);
+
+window.toggleNotifications = async () => {
+  if (Notification.permission === 'default') {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setState({ notificationsEnabled: true });
+    }
+  } else if (Notification.permission === 'granted') {
+    setState(s => ({ notificationsEnabled: !s.notificationsEnabled }));
+  } else {
+    alert("Please enable notifications in your browser settings to use this feature.");
+  }
+};
 
 // --- Audio Utilities ---
 const encode = (bytes) => {
@@ -84,7 +129,7 @@ const ICONS = {
   meds: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>`,
   contacts: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   emergency: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
-  settings: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   mic: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
   x: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
@@ -92,7 +137,8 @@ const ICONS = {
   phone: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
   star: `<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
   sun: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
-  moon: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+  moon: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
 };
 
 // --- State Management ---
@@ -172,7 +218,7 @@ function initGoogleSignIn() {
           size: 'large', shape: 'pill', text: 'signin_with', width: 280 
         });
       }
-    } catch (e) { console.error("Google Auth Init Error:", e); }
+    } catch (e) { console.warn("Google Auth Init Note: Requires valid Client ID and Origin."); }
   }
 }
 
@@ -293,7 +339,7 @@ function render() {
 
   const bgClass = state.isDarkMode ? 'bg-slate-950 text-white' : 'bg-gray-50 text-slate-900';
   const borderClass = state.isDarkMode ? 'border-slate-800' : 'border-gray-100';
-  const navBgClass = state.isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-gray-100';
+  const navBgClass = state.isDarkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-100';
 
   root.innerHTML = `
     <div class="h-full w-full max-md:h-screen flex flex-col overflow-hidden md:max-w-xl md:h-[90vh] md:rounded-[60px] md:shadow-2xl md:border-8 md:border-black/5 ${bgClass} relative">
@@ -302,7 +348,7 @@ function render() {
           <h1 class="text-2xl font-black text-blue-600">Senior Assist</h1>
           ${!state.isOnline ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Offline</span>` : ''}
         </div>
-        <button onclick="setState({isDarkMode: !state.isDarkMode})" class="p-2 rounded-full active:scale-90 transition-all ${state.isDarkMode ? 'text-yellow-400' : 'text-slate-400'}">
+        <button onclick="setState({isDarkMode: !state.isDarkMode})" class="p-2 rounded-full active:scale-90 transition-all ${state.isDarkMode ? 'text-yellow-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-gray-200'}">
           ${state.isDarkMode ? ICONS.sun : ICONS.moon}
         </button>
       </header>
@@ -314,7 +360,7 @@ function render() {
       <nav class="absolute bottom-0 left-0 right-0 safe-bottom border-t p-4 flex justify-around items-center z-50 backdrop-blur-lg ${navBgClass}">
         ${['home', 'meds', 'contacts', 'emergency', 'settings'].map(tab => `
           <button onclick="setState({activeTab: '${tab}'})" class="flex flex-col items-center gap-1 ${state.activeTab === tab ? 'text-blue-600 scale-110' : 'text-gray-400 opacity-60'} transition-all">
-            <div class="p-2 rounded-2xl ${state.activeTab === tab ? (state.isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50') : ''}">${ICONS[tab]}</div>
+            <div class="p-2 rounded-2xl ${state.activeTab === tab ? (state.isDarkMode ? 'bg-blue-900/40' : 'bg-blue-50') : ''}">${ICONS[tab]}</div>
             <span class="text-[10px] font-black uppercase tracking-widest">${tab === 'meds' ? 'Meds' : tab}</span>
           </button>
         `).join('')}
@@ -365,7 +411,7 @@ function renderTabContent() {
         <div class="relative z-10">
           <h2 class="text-3xl font-black mb-1">Hello, ${state.userName.split(' ')[0] || 'Friend'}!</h2>
           <p class="text-lg opacity-80 font-medium">How can I help you today?</p>
-          <button onclick="setState({showAssistant: true})" class="mt-8 flex items-center gap-3 bg-white text-blue-600 px-8 py-5 rounded-full font-black text-xl shadow-lg active:scale-95">
+          <button onclick="setState({showAssistant: true})" class="mt-8 flex items-center gap-3 bg-white text-blue-600 px-8 py-5 rounded-full font-black text-xl shadow-lg active:scale-95 transition-transform">
             ${ICONS.mic} Talk to Me
           </button>
         </div>
@@ -390,11 +436,11 @@ function renderTabContent() {
         <button onclick="setState({modalType: 'med'})" class="bg-blue-600 text-white p-4 rounded-full shadow-lg active:scale-90 transition-transform">${ICONS.plus}</button>
       </div>
       <div class="space-y-4">
-        ${state.medicines.length === 0 ? `<p class="text-center py-10 opacity-40 ${state.isDarkMode ? 'text-white' : 'text-slate-900'}">No medicines added yet.</p>` : ''}
+        ${state.medicines.length === 0 ? `<p class="text-center py-10 opacity-40 font-bold">No medicines added yet.</p>` : ''}
         ${state.medicines.map(m => `
           <div class="flex items-center justify-between p-6 rounded-[40px] border-2 ${m.taken ? (state.isDarkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50/50 border-green-200') : cardBgClass}">
             <div class="flex items-center gap-4 flex-1 cursor-pointer" onclick="window.toggleMed('${m.id}')">
-              <div class="w-10 h-10 rounded-full border-4 flex items-center justify-center ${m.taken ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200'}">
+              <div class="w-10 h-10 rounded-full border-4 flex items-center justify-center ${m.taken ? 'bg-green-500 border-green-500 text-white' : (state.isDarkMode ? 'border-slate-700' : 'border-gray-200')}">
                 ${m.taken ? '✓' : ''}
               </div>
               <div>
@@ -402,7 +448,7 @@ function renderTabContent() {
                 <p class="text-sm font-medium ${labelColorClass}">${m.time} • ${m.label}</p>
               </div>
             </div>
-            <button onclick="window.deleteMed('${m.id}')" class="p-4 text-red-300 hover:text-red-500">${ICONS.trash}</button>
+            <button onclick="window.deleteMed('${m.id}')" class="p-4 text-red-300 hover:text-red-500 transition-colors">${ICONS.trash}</button>
           </div>
         `).join('')}
       </div>
@@ -425,7 +471,7 @@ function renderTabContent() {
               <a href="tel:${c.phone}" class="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
                 ${ICONS.phone}
               </a>
-              <button onclick="window.deleteContact('${c.id}')" class="p-4 text-red-300 hover:text-red-500">${ICONS.trash}</button>
+              <button onclick="window.deleteContact('${c.id}')" class="p-4 text-red-300 hover:text-red-500 transition-colors">${ICONS.trash}</button>
             </div>
           </div>
         `).join('')}
@@ -441,10 +487,10 @@ function renderTabContent() {
       <button onclick="toggleAlarm()" class="w-full py-24 rounded-[60px] ${state.isAlarmActive ? 'bg-red-600 animate-pulse' : 'bg-red-500'} text-white shadow-2xl active:scale-95 transition-all">
         <div class="flex flex-col items-center gap-4">
           <div class="scale-[2] mb-4">${ICONS.emergency}</div>
-          <span class="text-4xl font-black">${state.isAlarmActive ? 'STOP ALARM' : 'PANIC BUTTON'}</span>
+          <span class="text-4xl font-black uppercase tracking-tighter">${state.isAlarmActive ? 'STOP ALARM' : 'PANIC BUTTON'}</span>
         </div>
       </button>
-      ${state.isAlarmActive ? '<p class="text-red-600 font-bold animate-bounce text-xl mt-4">ALARM SOUNDING...</p>' : ''}
+      ${state.isAlarmActive ? `<p class="text-red-600 font-bold animate-bounce text-xl mt-6 ${state.isDarkMode ? 'text-red-400' : ''}">ALARM SOUNDING...</p>` : ''}
     </div>
   `;
   if (state.activeTab === 'settings') return `
@@ -453,21 +499,31 @@ function renderTabContent() {
       
       <div class="rounded-[40px] border-2 p-8 space-y-8 ${cardBgClass}">
         ${state.user ? `
-          <div class="flex items-center gap-4 p-4 rounded-3xl ${state.isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}">
+          <div class="flex items-center gap-4 p-4 rounded-3xl ${state.isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}">
             <img src="${state.user.picture}" class="w-16 h-16 rounded-full border-2 border-white shadow-sm">
-            <div>
-              <p class="font-black text-blue-600">Logged in as</p>
-              <p class="text-xl font-bold">${state.user.name}</p>
+            <div class="flex-1 min-w-0">
+              <p class="font-black text-blue-600 text-xs">LOGGED IN AS</p>
+              <p class="text-xl font-bold truncate">${state.user.name}</p>
             </div>
           </div>
-          <button onclick="window.logout()" class="w-full py-4 text-center font-bold text-red-500">Sign Out</button>
+          <button onclick="window.logout()" class="w-full py-4 text-center font-bold text-red-500 hover:bg-red-50/10 rounded-2xl transition-colors">Sign Out</button>
         ` : `
           <div class="flex flex-col items-center gap-4">
             <p class="font-bold opacity-60">Sync your settings</p>
-            <div id="google-signin-btn" class="flex justify-center"></div>
+            <div id="google-signin-btn" class="flex justify-center min-h-[40px]"></div>
           </div>
         `}
         
+        <div class="flex items-center justify-between border-t pt-6 ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
+          <div class="flex items-center gap-4">
+            <div class="text-blue-600">${ICONS.bell}</div>
+            <h4 class="text-xl font-black">Reminders</h4>
+          </div>
+          <button onclick="window.toggleNotifications()" class="w-16 h-10 rounded-full ${state.notificationsEnabled ? 'bg-blue-600' : 'bg-gray-200'} p-1 transition-colors relative">
+            <div class="w-8 h-8 bg-white rounded-full transition-transform shadow-sm ${state.notificationsEnabled ? 'translate-x-6' : 'translate-x-0'}"></div>
+          </button>
+        </div>
+
         <div class="flex items-center justify-between border-t pt-6 ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
           <div class="flex items-center gap-4">
             <div class="text-blue-600">${ICONS.moon}</div>
@@ -479,13 +535,13 @@ function renderTabContent() {
         </div>
         
         <div class="border-t pt-6 ${state.isDarkMode ? 'border-slate-800' : 'border-gray-100'}">
-          <button onclick="window.resetApp()" class="w-full py-4 rounded-3xl font-black active:scale-95 transition-all ${state.isDarkMode ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-600'}">
+          <button onclick="window.resetApp()" class="w-full py-4 rounded-3xl font-black active:scale-95 transition-all ${state.isDarkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600'}">
             WIPE ALL DATA
           </button>
         </div>
       </div>
       
-      <p class="text-center text-sm opacity-30 font-bold uppercase tracking-widest">Senior Assist v1.0</p>
+      <p class="text-center text-sm opacity-30 font-bold uppercase tracking-widest">Senior Assist v1.1</p>
     </div>
   `;
 }
@@ -511,7 +567,7 @@ function renderAssistantModal() {
           <button onclick="stopAssistant()" class="bg-red-500 px-12 py-6 rounded-full font-black text-2xl shadow-xl active:scale-95 transition-transform">STOP</button>
         `}
       </div>
-      <p class="text-center opacity-70 font-medium max-w-xs mx-auto">I'm here to help with your meds or any questions you have.</p>
+      <p class="text-center opacity-70 font-medium max-w-xs mx-auto">Tell me about your meds or ask any question. I am here for you.</p>
     </div>
   `;
 }
@@ -522,16 +578,16 @@ function renderEntityModal() {
   const inputBgClass = state.isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gray-50 border-gray-100 text-slate-900';
 
   return `
-    <div class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-end p-4 animate-in fade-in">
-      <div class="w-full rounded-[50px] p-10 space-y-8 shadow-2xl max-w-lg mx-auto ${modalBgClass}">
+    <div class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-end p-4 animate-in fade-in">
+      <div class="w-full rounded-[50px] p-10 space-y-8 shadow-2xl max-w-lg mx-auto ${modalBgClass} border-t-4 border-blue-600">
         <div class="flex justify-between items-center">
           <h3 class="text-3xl font-black">${isMed ? 'Add Medicine' : 'Add Contact'}</h3>
-          <button onclick="setState({modalType: null})" class="text-gray-400 p-2">${ICONS.x}</button>
+          <button onclick="setState({modalType: null})" class="text-gray-400 p-2 hover:text-red-500 transition-colors">${ICONS.x}</button>
         </div>
         <div class="space-y-4">
-          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name' : 'Full Name'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
-          <input id="modal-input-2" type="${isMed ? 'time' : 'tel'}" placeholder="${isMed ? 'Time' : 'Phone Number'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
-          <input id="modal-input-3" type="text" placeholder="${isMed ? 'Label (e.g. Morning)' : 'Relation (e.g. Family)'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold ${inputBgClass}">
+          <input id="modal-input-1" type="text" placeholder="${isMed ? 'Medicine Name' : 'Full Name'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
+          <input id="modal-input-2" type="${isMed ? 'time' : 'tel'}" placeholder="${isMed ? 'Time' : 'Phone Number'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
+          <input id="modal-input-3" type="text" placeholder="${isMed ? 'Label (e.g. Morning)' : 'Relation (e.g. Family)'}" class="w-full p-6 rounded-3xl border-2 text-xl font-bold transition-all focus:border-blue-500 outline-none ${inputBgClass}">
         </div>
         <button onclick="window.saveFromModal()" class="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-transform">SAVE</button>
       </div>
